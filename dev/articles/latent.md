@@ -314,7 +314,7 @@ print(time_lat)
 ```
 
        user  system elapsed 
-      1.088   0.354   1.050 
+      1.088   0.335   1.030 
 
 The message telling that `<refmodel>$dis` consists of only `NA`s will
 not concern us here because we will only focus on response-scale
@@ -421,7 +421,7 @@ print(time_trad)
 ```
 
        user  system elapsed 
-      4.297   0.344   4.241 
+      4.190   0.349   4.140 
 
 ``` r
 ( gg_trad <- plot(vs_trad, stats = "gmpd", deltas = TRUE) )
