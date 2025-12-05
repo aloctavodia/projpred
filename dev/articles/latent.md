@@ -316,7 +316,7 @@ print(time_lat)
 ```
 
        user  system elapsed 
-      1.081   0.331   1.020 
+      1.095   0.332   1.035 
 
 The message telling that `<refmodel>$dis` consists of only `NA`s will
 not concern us here because we will only focus on response-scale
@@ -423,7 +423,7 @@ print(time_trad)
 ```
 
        user  system elapsed 
-      4.234   0.350   4.185 
+      4.240   0.356   4.196 
 
 ``` r
 ( gg_trad <- plot(vs_trad, stats = "gmpd", deltas = TRUE) )
@@ -795,7 +795,7 @@ cvvs_weib <- cv_varsel(
     Warning: Some (1 / 500) Pareto k's for the reference model's PSIS-LOO weights
     are > 0.7.
 
-    Warning: In the recalculation of the latent response values, some (3 / 500) expectation-specific Pareto k-values are > 0.7.
+    Warning: In the recalculation of the latent response values, some (7 / 500) expectation-specific Pareto k-values are > 0.7.
     In general, we recommend K-fold CV in this case.
 
     Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
@@ -803,7 +803,7 @@ cvvs_weib <- cv_varsel(
     Warning: Some (1 / 500) Pareto k's for the reference model's PSIS-LOO weights
     are > 0.7.
 
-    Warning: In the recalculation of the latent response values, some (3 / 500) expectation-specific Pareto k-values are > 0.7.
+    Warning: In the recalculation of the latent response values, some (7 / 500) expectation-specific Pareto k-values are > 0.7.
     In general, we recommend K-fold CV in this case.
 
     Using standard importance sampling (SIS) due to a small number of clusters.
