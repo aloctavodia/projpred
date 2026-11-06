@@ -3,9 +3,8 @@
 ## Introduction
 
 This vignette shows how to use the latent projection predictive feature
-selection from Catalina, Bürkner, and Vehtari
-([2021](#ref-catalina_latent_2021)) in **projpred**. We recommend to
-read the [main
+selection from Catalina et al. ([2021](#ref-catalina_latent_2021)) in
+**projpred**. We recommend to read the [main
 vignette](https://mc-stan.org/projpred/articles/projpred.html) first, as
 the latent-projection vignette presented here will skip some of the
 details explained in the main vignette.
@@ -19,16 +18,15 @@ particular, the [`gaussian()`](https://rdrr.io/r/stats/family.html), the
 [`poisson()`](https://rdrr.io/r/stats/family.html) family which are
 supported by **projpred**’s traditional projection) may be termed
 *exponential dispersion (ED)* families ([Jørgensen
-1987](#ref-jorgensen_exponential_1987))[¹](#fn1). For a response family
-that is not an ED family, the Kullback-Leibler (KL) divergence
-minimization problem (see [Piironen, Paasiniemi, and Vehtari
-2020](#ref-piironen_projective_2020)) is often not easy to solve
-analytically (exceptions are non-ED families that are discrete and have
-finite support; see the comment on the augmented-data projection in
-section [“Implementation”](#impl)). In order to bypass this issue, the
-latent projection ([Catalina, Bürkner, and Vehtari
+1987](#ref-jorgensen_exponential_1987))[^1]. For a response family that
+is not an ED family, the Kullback-Leibler (KL) divergence minimization
+problem (see [Piironen et al. 2020](#ref-piironen_projective_2020)) is
+often not easy to solve analytically (exceptions are non-ED families
+that are discrete and have finite support; see the comment on the
+augmented-data projection in section [“Implementation”](#impl)). In
+order to bypass this issue, the latent projection ([Catalina et al.
 2021](#ref-catalina_latent_2021)) solves the KL minimization problem in
-the predictive space of the latent predictors[²](#fn2) instead of in the
+the predictive space of the latent predictors[^2] instead of in the
 predictive space of the original response values.
 
 To this end, the latent predictor is assumed to have a Gaussian
@@ -78,7 +76,7 @@ down to
 [`extend_family()`](https://mc-stan.org/projpred/dev/reference/extend_family.md)
 via the ellipsis (`...`). However, we recommend to define the reference
 model object of class `refmodel` explicitly (as illustrated in the
-examples below) to avoid repetitive and inefficient code[³](#fn3).
+examples below) to avoid repetitive and inefficient code[^3].
 
 After performing the projection (either as a stand-alone feature via
 [`project()`](https://mc-stan.org/projpred/dev/reference/project.md) or
@@ -128,14 +126,14 @@ also features the latent-projection argument `latent_y_unqs` whose
 purpose is described in the documentation.
 
 While the latent projection is an approximate solution to the KL
-divergence minimization problem in the original response space[⁴](#fn4),
-the augmented-data projection ([Weber, Glass, and Vehtari
-2025](#ref-weber_projection_2025)) gives the exact[⁵](#fn5) solution for
-some non-ED families, namely those where the response distribution has
-finite support. However, the augmented-data projection comes with a
-higher runtime than the latent projection. The families currently
-supported by **projpred**’s augmented-data projection are also listed in
-the main vignette (again section [“Supported types of
+divergence minimization problem in the original response space[^4], the
+augmented-data projection ([Weber et al.
+2025](#ref-weber_projection_2025)) gives the exact[^5] solution for some
+non-ED families, namely those where the response distribution has finite
+support. However, the augmented-data projection comes with a higher
+runtime than the latent projection. The families currently supported by
+**projpred**’s augmented-data projection are also listed in the main
+vignette (again section [“Supported types of
 models”](https://mc-stan.org/projpred/articles/projpred.html#modtypes)).
 
 ## Example: Poisson distribution
@@ -155,6 +153,7 @@ First, we generate a training and a test dataset with a
 Poisson-distributed response:
 
 ``` r
+
 # Number of observations in the training dataset (= number of observations in
 # the test dataset):
 N <- 71
@@ -207,10 +206,12 @@ that we don’t know about the true data-generating process even though
 the dataset was simulated):
 
 ``` r
+
 library(rstanarm)
 ```
 
 ``` r
+
 # Number of regression coefficients:
 ( D <- sum(grepl("^x", names(dat_poiss_train))) )
 ```
@@ -218,6 +219,7 @@ library(rstanarm)
     [1] 50
 
 ``` r
+
 # Prior guess for the number of relevant (i.e., non-zero) regression
 # coefficients:
 p0 <- 10
@@ -249,10 +251,6 @@ refm_fit_poiss <- stan_glm(
 )
 ```
 
-    Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-    Running the chains for more iterations may help. See
-    https://mc-stan.org/misc/warnings.html#bulk-ess
-
 Due to the technical reasons for which we reduced `chains` and `iter` in
 this vignette, we ignore the bulk-ESS warning here.
 
@@ -271,10 +269,12 @@ Furthermore, we measure the runtime to be able to compare it to the
 traditional projection’s later:
 
 ``` r
+
 library(projpred)
 ```
 
 ``` r
+
 d_test_lat_poiss <- list(
   data = dat_poiss_test,
   offset = rep(0, nrow(dat_poiss_test)),
@@ -291,6 +291,7 @@ refm_poiss <- get_refmodel(refm_fit_poiss, latent = TRUE)
     Since `<refmodel>$dis` will consist of only `NA`s, downstream analyses based on this reference model object won't be able to use log predictive density (LPD) values on latent scale. Furthermore, proj_predict() won't be able to draw from the latent Gaussian distribution.
 
 ``` r
+
 time_lat <- system.time(vs_lat <- varsel(
   refm_poiss,
   d_test = d_test_lat_poiss,
@@ -312,11 +313,12 @@ time_lat <- system.time(vs_lat <- varsel(
 ```
 
 ``` r
+
 print(time_lat)
 ```
 
        user  system elapsed 
-      1.082   0.340   1.031 
+      0.195   0.002   0.153 
 
 The message telling that `<refmodel>$dis` consists of only `NA`s will
 not concern us here because we will only focus on response-scale
@@ -342,6 +344,7 @@ to `"secondary_x"` to make the submodel sizes readable in all of the
 plots in this vignette.
 
 ``` r
+
 options(projpred.plot_vsel_size_position = "secondary_x")
 ( gg_lat <- plot(vs_lat, stats = "gmpd", deltas = TRUE) )
 ```
@@ -351,6 +354,7 @@ options(projpred.plot_vsel_size_position = "secondary_x")
 Based on this plot, we decide for a submodel size of 11:
 
 ``` r
+
 size_decided_lat <- 11
 ```
 
@@ -359,6 +363,7 @@ This is also the size that
 would suggest:
 
 ``` r
+
 suggest_size(vs_lat, stat = "gmpd")
 ```
 
@@ -369,6 +374,7 @@ In the predictor ranking up to the selected size of 11, we can see that
 and only then the noise predictors:
 
 ``` r
+
 rk_lat <- ranking(vs_lat)
 ( predictors_final_lat <- head(rk_lat[["fulldata"]], size_decided_lat) )
 ```
@@ -395,6 +401,7 @@ have given. For this, we increase `nterms_max` because this will reveal
 an issue with this approach:
 
 ``` r
+
 d_test_trad_poiss <- d_test_lat_poiss
 d_test_trad_poiss$y <- d_test_trad_poiss$y_oscale
 d_test_trad_poiss$y_oscale <- NULL
@@ -419,13 +426,15 @@ time_trad <- system.time(vs_trad <- varsel(
 ```
 
 ``` r
+
 print(time_trad)
 ```
 
        user  system elapsed 
-      4.164   0.357   4.122 
+      0.756   0.001   0.415 
 
 ``` r
+
 ( gg_trad <- plot(vs_trad, stats = "gmpd", deltas = TRUE) )
 ```
 
@@ -457,7 +466,7 @@ In this example, we will illustrate the latent projection in case of the
 negative binomial family (more precisely, we will use the
 [`rstanarm::neg_binomial_2()`](https://mc-stan.org/rstanarm/reference/neg_binomial_2.html)
 family here) which is a family that is not supported by **projpred**’s
-traditional projection[⁶](#fn6).
+traditional projection[^6].
 
 ### Data
 
@@ -474,6 +483,7 @@ binomial distribution, this would first require a manual derivation of
 the pseudo-variance \\\tilde{\sigma}^2\\.
 
 ``` r
+
 refm_fit_nebin <- stan_glm(
   formula = refm_fml,
   family = neg_binomial_2(),
@@ -486,10 +496,6 @@ refm_fit_nebin <- stan_glm(
 )
 ```
 
-    Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-    Running the chains for more iterations may help. See
-    https://mc-stan.org/misc/warnings.html#bulk-ess
-
 Again, we ignore the bulk-ESS warning due to the technical reasons for
 which we reduced `chains` and `iter` in this vignette.
 
@@ -499,9 +505,10 @@ To request the latent projection with `latent = TRUE`, we now need to
 specify more arguments (`latent_ll_oscale` and `latent_ppd_oscale`; the
 internal default for `latent_ilink` works correctly in this example)
 which will be passed to
-[`extend_family()`](https://mc-stan.org/projpred/dev/reference/extend_family.md)[⁷](#fn7):
+[`extend_family()`](https://mc-stan.org/projpred/dev/reference/extend_family.md)[^7]:
 
 ``` r
+
 refm_prec <- as.matrix(refm_fit_nebin)[, "reciprocal_dispersion", drop = FALSE]
 latent_ll_oscale_nebin <- function(ilpreds,
                                    dis = rep(NA, nrow(ilpreds)),
@@ -541,6 +548,7 @@ refm_nebin <- get_refmodel(refm_fit_nebin, latent = TRUE,
     Since `<refmodel>$dis` will consist of only `NA`s, downstream analyses based on this reference model object won't be able to use log predictive density (LPD) values on latent scale. Furthermore, proj_predict() won't be able to draw from the latent Gaussian distribution.
 
 ``` r
+
 vs_nebin <- varsel(
   refm_nebin,
   d_test = d_test_lat_poiss,
@@ -566,6 +574,7 @@ Again, we first inspect the
 decide for a submodel size:
 
 ``` r
+
 ( gg_nebin <- plot(vs_nebin, stats = "gmpd", deltas = TRUE) )
 ```
 
@@ -577,6 +586,7 @@ vignette](https://mc-stan.org/projpred/articles/projpred.html#decision-size),
 so we decide for a submodel size of 11:
 
 ``` r
+
 size_decided_nebin <- 11
 ```
 
@@ -589,6 +599,7 @@ provides only a quite heuristic decision (so we stick with our manual
 decision here):
 
 ``` r
+
 suggest_size(vs_nebin, stat = "gmpd")
 ```
 
@@ -600,6 +611,7 @@ and include one noise term (`xn.29`). More explicitly, our selected
 predictor terms are:
 
 ``` r
+
 rk_nebin <- ranking(vs_nebin)
 ( predictors_final_nebin <- head(rk_nebin[["fulldata"]],
                                  size_decided_nebin) )
@@ -626,7 +638,7 @@ when using the latent projection in combination with a custom
 `latent_ll_oscale` function (see
 [`?extend_family`](https://mc-stan.org/projpred/dev/reference/extend_family.md))
 that has an attribute called `cens_var` and makes use of its argument
-`cens`[⁸](#fn8).
+`cens`[^8].
 
 We will illustrate this here using simulated data and right censoring,
 first with a Weibull response and then with a log-normal response. Both
@@ -635,6 +647,7 @@ examples are adapted from a
 on The Stan Forums. Here, we use the following common simulation part:
 
 ``` r
+
 N_surv <- 500
 n_pred <- 50
 n_pred_truth <- 10
@@ -657,6 +670,7 @@ cens_surv <- runif(N_surv,
 For the Weibull model, we complete our data generation as follows:
 
 ``` r
+
 shape_weib <- 1.2
 scales_weib <- epreds_surv / (gamma(1 + (1 / shape_weib)))
 y_weib <- rweibull(N_surv, shape = shape_weib, scale = scales_weib)
@@ -672,6 +686,7 @@ We now fit a reference model in
 [**brms**](https://paulbuerkner.com/brms/):
 
 ``` r
+
 refm_fit_weib <- brms::brm(
   formula = yobs | cens(is_censored) ~ .,
   family = brms::weibull(),
@@ -690,6 +705,7 @@ The following code prepares the
 run and the downstream **projpred** steps:
 
 ``` r
+
 refm_shape <- as.matrix(refm_fit_weib)[, "shape", drop = FALSE]
 
 latent_ll_oscale_weib <- structure(function(
@@ -763,12 +779,17 @@ Again, the message telling that `<refmodel>$dis` consists of only `NA`s
 will not concern us here because we will only focus on response-scale
 post-processing. The message concerning `latent_ilink` can be safely
 ignored here (the internal default based on `family$linkinv` works
-correctly in this case).
+correctly in this case). The functions above use the shape draws of the
+full-data fit (`refm_shape`). This is correct for
+[`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md) and
+for the LOO CV that we use below. For K-fold CV, see section [“K-fold CV
+with custom response-scale functions”](#kfold-custom).
 
 Run
 [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md):
 
 ``` r
+
 # For running projpred's CV in parallel (see cv_varsel()'s argument `parallel`):
 # Note: Parallel processing is disabled during package building to avoid issues
 use_parallel <- FALSE  # Set to TRUE for actual parallel processing
@@ -792,23 +813,24 @@ cvvs_weib <- cv_varsel(
 
     Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
 
-    Warning: Some (2 / 500) Pareto k's for the reference model's PSIS-LOO weights
+    Warning: Some (1 / 500) Pareto k's for the reference model's PSIS-LOO weights
     are > 0.7.
 
-    Warning: In the recalculation of the latent response values, some (5 / 500) expectation-specific Pareto k-values are > 0.7.
+    Warning: In the recalculation of the latent response values, some (7 / 500) expectation-specific Pareto k-values are > 0.7.
     In general, we recommend K-fold CV in this case.
 
     Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
 
-    Warning: Some (2 / 500) Pareto k's for the reference model's PSIS-LOO weights
+    Warning: Some (1 / 500) Pareto k's for the reference model's PSIS-LOO weights
     are > 0.7.
 
-    Warning: In the recalculation of the latent response values, some (5 / 500) expectation-specific Pareto k-values are > 0.7.
+    Warning: In the recalculation of the latent response values, some (7 / 500) expectation-specific Pareto k-values are > 0.7.
     In general, we recommend K-fold CV in this case.
 
     Using standard importance sampling (SIS) due to a small number of clusters.
 
 ``` r
+
 # Tear down the CV parallelization setup:
 if (use_parallel) {
   doParallel::stopImplicitCluster()
@@ -826,6 +848,7 @@ vignette.
 Plot the results:
 
 ``` r
+
 plot(cvvs_weib, stats = "mlpd", deltas = TRUE)
 ```
 
@@ -836,6 +859,7 @@ Project onto the submodel consisting of the first `n_pred_truth`
 predictors and perform a “posterior-projection predictive check” (PPPC):
 
 ``` r
+
 predictors_final_weib <- head(ranking(cvvs_weib)[["fulldata"]], n_pred_truth)
 prj_weib <- project(refm_weib, predictor_terms = predictors_final_weib)
 prj_predict_weib <- proj_predict(prj_weib)
@@ -846,6 +870,7 @@ prj_predict_weib <- proj_predict(prj_weib)
     uncensored.
 
 ``` r
+
 bayesplot::bayesplot_theme_set(ggplot2::theme_bw())
 bayesplot::ppc_km_overlay(y = dat_sim_weib$yobs, yrep = prj_predict_weib,
                           status_y = 1 - dat_sim_weib$is_censored)
@@ -853,14 +878,6 @@ bayesplot::ppc_km_overlay(y = dat_sim_weib$yobs, yrep = prj_predict_weib,
 
     Note: `extrapolation_factor` now defaults to 1.2 (20%).
     To display all posterior predictive draws, set `extrapolation_factor = Inf`.
-
-    Warning:  [1m [22mUsing `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-     [36mℹ [39m Please use `linewidth` instead.
-     [36mℹ [39m The deprecated feature was likely used in the  [34mbayesplot [39m package.
-      Please report the issue at  [3m [34m<https://github.com/stan-dev/bayesplot/issues/> [39m [23m.
-     [90mThis warning is displayed once every 8 hours. [39m
-     [90mCall `lifecycle::last_lifecycle_warnings()` to see where this warning was [39m
-     [90mgenerated. [39m
 
 ![](latent_files/figure-html/weibull_pppc-1.png)
 
@@ -873,6 +890,7 @@ tool).
 For the log-normal model, we complete our data generation as follows:
 
 ``` r
+
 sdlog_lnorm <- 0.3
 y_lnorm <- rlnorm(N_surv, meanlog = linpreds_surv, sdlog = sdlog_lnorm)
 is_event_lnorm <- y_lnorm < cens_surv
@@ -886,6 +904,7 @@ dat_sim_lnorm <- data.frame(yobs = yobs_lnorm,
 Again, we fit a reference model in **brms**:
 
 ``` r
+
 refm_fit_lnorm <- brms::brm(
   formula = yobs | cens(is_censored) ~ .,
   family = brms::lognormal(),
@@ -904,6 +923,7 @@ The following code prepares the
 run and the downstream **projpred** steps:
 
 ``` r
+
 latent_ll_oscale_lnorm <- structure(function(
     ilpreds,
     dis = rep(NA, nrow(ilpreds)),
@@ -969,12 +989,15 @@ refm_lnorm <- get_refmodel(
 
 The message concerning `latent_ilink` can be safely ignored here (the
 internal default based on `family$linkinv` works correctly in this
-case).
+case). Argument `dis` contains the `sigma` draws of the full-data fit.
+For K-fold CV, see section [“K-fold CV with custom response-scale
+functions”](#kfold-custom).
 
 Run
 [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md):
 
 ``` r
+
 # For running projpred's CV in parallel (see cv_varsel()'s argument `parallel`):
 # Note: Parallel processing is disabled during package building to avoid issues
 use_parallel <- FALSE  # Set to TRUE for actual parallel processing
@@ -1001,7 +1024,7 @@ cvvs_lnorm <- cv_varsel(
     Warning: Some (4 / 500) Pareto k's for the reference model's PSIS-LOO weights
     are > 0.7.
 
-    Warning: In the recalculation of the latent response values, some (8 / 500) expectation-specific Pareto k-values are > 0.7.
+    Warning: In the recalculation of the latent response values, some (7 / 500) expectation-specific Pareto k-values are > 0.7.
     In general, we recommend K-fold CV in this case.
 
     Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
@@ -1009,12 +1032,13 @@ cvvs_lnorm <- cv_varsel(
     Warning: Some (4 / 500) Pareto k's for the reference model's PSIS-LOO weights
     are > 0.7.
 
-    Warning: In the recalculation of the latent response values, some (8 / 500) expectation-specific Pareto k-values are > 0.7.
+    Warning: In the recalculation of the latent response values, some (7 / 500) expectation-specific Pareto k-values are > 0.7.
     In general, we recommend K-fold CV in this case.
 
     Using standard importance sampling (SIS) due to a small number of clusters.
 
 ``` r
+
 # Tear down the CV parallelization setup:
 if (use_parallel) {
   doParallel::stopImplicitCluster()
@@ -1032,6 +1056,7 @@ vignette.
 Plot the results:
 
 ``` r
+
 plot(cvvs_lnorm, stats = "mlpd", deltas = TRUE)
 ```
 
@@ -1042,6 +1067,7 @@ Project onto the submodel consisting of the first `n_pred_truth`
 predictors and perform a “posterior-projection predictive check” (PPPC):
 
 ``` r
+
 predictors_final_lnorm <- head(ranking(cvvs_lnorm)[["fulldata"]], n_pred_truth)
 prj_lnorm <- project(refm_lnorm, predictor_terms = predictors_final_lnorm)
 prj_predict_lnorm <- proj_predict(prj_lnorm)
@@ -1052,6 +1078,7 @@ prj_predict_lnorm <- proj_predict(prj_lnorm)
     uncensored.
 
 ``` r
+
 bayesplot::ppc_km_overlay(y = dat_sim_lnorm$yobs, yrep = prj_predict_lnorm,
                           status_y = 1 - dat_sim_lnorm$is_censored)
 ```
@@ -1065,21 +1092,129 @@ As expected, this PPPC indicates that this submodel is a reasonable one
 (keeping in mind that such a PPPC is just a single model-diagnostic
 tool).
 
+## K-fold CV with custom response-scale functions
+
+In the negative binomial and Weibull examples above, the custom
+response-scale functions use posterior draws from the full-data
+reference model fit (`refm_prec`, `refm_shape`). In the log-normal
+example, argument `dis` contains the `sigma` draws of the full-data fit.
+This is correct for
+[`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md) and
+for
+[`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
+with `cv_method = "LOO"`, because these use only the full-data fit. With
+`cv_method = "kfold"`, the reference model is refitted in each fold, and
+**projpred** creates the fold-wise reference model objects with the
+function in element `cvrefbuilder` of the reference model object. The
+`cvrefbuilder` functions of
+[`get_refmodel.stanreg()`](https://mc-stan.org/projpred/dev/reference/refmodel-init-get.md)
+and
+[`brms::get_refmodel.brmsfit()`](https://paulbuerkner.com/brms/reference/get_refmodel.brmsfit.html)
+pass the same custom functions and the same `dis` to the fold-wise
+reference model objects, so the folds use the draws from the full-data
+fit, meaning that information from the held-out observations can enter
+the fold-wise predictive evaluation.
+
+To use the draws from the fold-wise refits, define the custom functions
+inside a function that takes the fitted model object as its argument and
+calls
+[`get_refmodel()`](https://mc-stan.org/projpred/dev/reference/refmodel-init-get.md).
+Then set element `cvrefbuilder` of the reference model object to a
+function that calls this outer function with the fold-wise refit. In
+this call, argument `called_from_cvrefbuilder = TRUE` suppresses some
+warnings that are already shown for the full-data reference model object
+(see
+[`?init_refmodel`](https://mc-stan.org/projpred/dev/reference/refmodel-init-get.md)).
+This is a workaround: currently, methods
+[`get_refmodel.stanreg()`](https://mc-stan.org/projpred/dev/reference/refmodel-init-get.md)
+and
+[`brms::get_refmodel.brmsfit()`](https://paulbuerkner.com/brms/reference/get_refmodel.brmsfit.html)
+do not accept a `cvrefbuilder` argument, so we replace the element after
+we have created the reference model object. For a **brms** reference
+model, the default `cvrefbuilder` also passes arguments `resp` and
+`brms_seed` of
+[`brms::get_refmodel.brmsfit()`](https://paulbuerkner.com/brms/reference/get_refmodel.brmsfit.html).
+If you use these arguments, pass them in the custom `cvrefbuilder` too.
+For the negative binomial example, this can look as follows:
+
+``` r
+
+get_refmodel_nebin <- function(fit, ...) {
+  refm_prec <- as.matrix(fit)[, "reciprocal_dispersion", drop = FALSE]
+  latent_ll_oscale_nebin <- function(ilpreds,
+                                     dis = rep(NA, nrow(ilpreds)),
+                                     y_oscale,
+                                     wobs = rep(1, ncol(ilpreds)),
+                                     cens,
+                                     cl_ref,
+                                     wdraws_ref = rep(1, length(cl_ref))) {
+    y_oscale_mat <- matrix(y_oscale, nrow = nrow(ilpreds),
+                           ncol = ncol(ilpreds), byrow = TRUE)
+    wobs_mat <- matrix(wobs, nrow = nrow(ilpreds), ncol = ncol(ilpreds),
+                       byrow = TRUE)
+    refm_prec_agg <- cl_agg(refm_prec, cl = cl_ref, wdraws = wdraws_ref)
+    ll_unw <- dnbinom(y_oscale_mat, size = refm_prec_agg, mu = ilpreds,
+                      log = TRUE)
+    return(wobs_mat * ll_unw)
+  }
+  latent_ppd_oscale_nebin <- function(
+      ilpreds_resamp,
+      dis_resamp = rep(NA, nrow(ilpreds_resamp)),
+      wobs = rep(1, ncol(ilpreds_resamp)),
+      cl_ref,
+      wdraws_ref = rep(1, length(cl_ref)),
+      idxs_prjdraws
+  ) {
+    refm_prec_agg <- cl_agg(refm_prec, cl = cl_ref, wdraws = wdraws_ref)
+    refm_prec_agg_resamp <- refm_prec_agg[idxs_prjdraws, , drop = FALSE]
+    ppd <- rnbinom(prod(dim(ilpreds_resamp)), size = refm_prec_agg_resamp,
+                   mu = ilpreds_resamp)
+    ppd <- matrix(ppd, nrow = nrow(ilpreds_resamp), ncol = ncol(ilpreds_resamp))
+    return(ppd)
+  }
+  get_refmodel(fit, latent = TRUE,
+               latent_ll_oscale = latent_ll_oscale_nebin,
+               latent_ppd_oscale = latent_ppd_oscale_nebin, ...)
+}
+refm_nebin_kfold <- get_refmodel_nebin(refm_fit_nebin)
+```
+
+    Defining `latent_ilink` as a function which calls `family$linkinv`, but there is no guarantee that this will work for all families. If relying on `family$linkinv` is not appropriate or if this raises an error in downstream functions, supply a custom `latent_ilink` function (which is also allowed to return only `NA`s if response-scale post-processing is not needed).
+
+    Since `<refmodel>$dis` will consist of only `NA`s, downstream analyses based on this reference model object won't be able to use log predictive density (LPD) values on latent scale. Furthermore, proj_predict() won't be able to draw from the latent Gaussian distribution.
+
+``` r
+
+refm_nebin_kfold$cvrefbuilder <- function(cvfit) {
+  get_refmodel_nebin(cvfit, called_from_cvrefbuilder = TRUE)
+}
+```
+
+As before, the messages concerning `<refmodel>$dis` and `latent_ilink`
+can be ignored here. Then
+`cv_varsel(refm_nebin_kfold, cv_method = "kfold")` uses the
+`reciprocal_dispersion` draws of the fold-wise refit in each fold. We do
+not run K-fold CV here, because it refits the reference model \\K\\
+times. For the Weibull example, define `refm_shape` inside such a
+function in the same way. For the log-normal example, pass
+`dis = as.matrix(fit)[, "sigma", drop = FALSE]` to
+[`get_refmodel()`](https://mc-stan.org/projpred/dev/reference/refmodel-init-get.md)
+inside such a function.
+
 ## References
 
-Catalina, Alejandro, Paul Bürkner, and Aki Vehtari. 2021. “Latent Space
-Projection Predictive Inference.” arXiv.
+Catalina, Alejandro, Paul Bürkner, and Aki Vehtari. 2021. *Latent Space
+Projection Predictive Inference*. arXiv.
 <https://doi.org/10.48550/arXiv.2109.04702>.
 
 Cover, Thomas M., and Joy A. Thomas. 1991. *Elements of Information
-Theory*. New York, NY, USA: John Wiley & Sons, Ltd.
-<https://doi.org/10.1002/0471200611>.
+Theory*. John Wiley & Sons, Ltd. <https://doi.org/10.1002/0471200611>.
 
 Jørgensen, Bent. 1987. “Exponential Dispersion Models.” *Journal of the
 Royal Statistical Society. Series B (Methodological)* 49 (2): 127–62.
 
 McCullagh, P., and J. A. Nelder. 1989. *Generalized Linear Models*. 2nd
-ed. London: Chapman & Hall.
+ed. Chapman & Hall.
 
 Piironen, Juho, Markus Paasiniemi, and Aki Vehtari. 2020. “Projective
 Inference in High-Dimensional Problems: Prediction and Feature
@@ -1096,9 +1231,7 @@ Variable Selection for Discrete Response Families with Finite Support.”
 *Computational Statistics* 40 (2): 701–21.
 <https://doi.org/10.1007/s00180-024-01506-0>.
 
-------------------------------------------------------------------------
-
-1.  Jørgensen ([1987](#ref-jorgensen_exponential_1987)) himself only
+[^1]: Jørgensen ([1987](#ref-jorgensen_exponential_1987)) himself only
     uses the term “exponential dispersion model”, but the discussion for
     that article mentions the term “ED \[i.e., exponential dispersion\]
     family”. Jørgensen ([1987](#ref-jorgensen_exponential_1987)) also
@@ -1106,10 +1239,10 @@ Variable Selection for Discrete Response Families with Finite Support.”
     (here abbreviated by “DED families”), see section [“Example:
     Negative binomial distribution”](#negbinex).
 
-2.  The latent predictors are also known as the linear predictors, but
+[^2]: The latent predictors are also known as the linear predictors, but
     “latent” is a more general term than “linear”.
 
-3.  If the `refmodel`-class object is not defined explicitly but
+[^3]: If the `refmodel`-class object is not defined explicitly but
     implicitly by a call to a top-level function such as
     [`project()`](https://mc-stan.org/projpred/dev/reference/project.md),
     [`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md),
@@ -1118,16 +1251,16 @@ Variable Selection for Discrete Response Families with Finite Support.”
     then `latent = TRUE` and all other arguments related to the latent
     projection need to be set in *each* call to a top-level function.
 
-4.  More precisely, the latent projection *replaces* the KL divergence
+[^4]: More precisely, the latent projection *replaces* the KL divergence
     minimization problem in the original response space by a KL
     divergence minimization problem in the latent space and solves the
     latter.
 
-5.  Here, “exact” means apart from approximations and simplifications
+[^5]: Here, “exact” means apart from approximations and simplifications
     which are also undertaken for the traditional projection.
 
-6.  The negative binomial distribution belongs to the class of *discrete
-    exponential dispersion* families ([Jørgensen
+[^6]: The negative binomial distribution belongs to the class of
+    *discrete exponential dispersion* families ([Jørgensen
     1987](#ref-jorgensen_exponential_1987)) (here abbreviated by “DED
     families”). DED families are closely related to ED families
     ([Jørgensen 1987](#ref-jorgensen_exponential_1987)), but strictly
@@ -1137,7 +1270,7 @@ Variable Selection for Discrete Response Families with Finite Support.”
     why the “traditional” projection onto a DED-family submodel is
     currently not implemented in **projpred**.
 
-7.  The suffix `_prec` in `refm_prec` stands for “precision” because
+[^7]: The suffix `_prec` in `refm_prec` stands for “precision” because
     here, we follow the Stan convention (see the Stan documentation for
     the `neg_binomial_2` distribution, the
     [`brms::negbinomial()`](https://paulbuerkner.com/brms/reference/brmsfamily.html)
@@ -1151,7 +1284,7 @@ Variable Selection for Discrete Response Families with Finite Support.”
     *dispersion* parameter there, although the variance is increased by
     its reciprocal).
 
-8.  Briefly, the variable mentioned in the `cens_var` right-hand side
+[^8]: Briefly, the variable mentioned in the `cens_var` right-hand side
     formula needs to contain the censoring indicators (e.g., `0` =
     uncensored, `1` = censored) which can then be used within the custom
     `latent_ll_oscale` function via its argument `cens`.

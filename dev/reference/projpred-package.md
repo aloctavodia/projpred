@@ -48,7 +48,8 @@ by projpred's internal default `div_minimizer` functions, see
     The returned object inherits from class `subfit`. Possible tuning
     parameters for this internal C++ function are: `regul` (amount of
     ridge regularization; default: `1e-4`), `thresh_conv` (convergence
-    threshold; default: `1e-7`), `qa_updates_max` (maximum number of
+    threshold; default: `1e-7`, but not used in case of the Gaussian
+    family with identity link), `qa_updates_max` (maximum number of
     quadratic approximation updates; default: `100`, but fixed to `1` in
     case of the Gaussian family with identity link), `ls_iter_max`
     (maximum number of line search iterations; default: `30`, but fixed
@@ -84,14 +85,19 @@ by projpred's internal default `div_minimizer` functions, see
     [`gaussian()`](https://rdrr.io/r/stats/family.html) family,
     [`lme4::glmer()`](https://rdrr.io/pkg/lme4/man/glmer.html) (the
     returned object inherits from class `glmerMod`) for all other
-    families.
+    families. For
+    [`lme4::glmer()`](https://rdrr.io/pkg/lme4/man/glmer.html), projpred
+    uses `control = lme4::glmerControl(optimizer = "bobyqa")`, so both
+    optimization stages use BOBYQA. A `control` argument in `...`
+    replaces this default in the first fit. After some lme4 errors,
+    projpred refits with its own settings and ignores this `control`.
 
   - For the augmented-data projection:
     [`ordinal::clmm()`](https://rdrr.io/pkg/ordinal/man/clmm.html) (the
     returned object inherits from class `clmm`) for the
     [`brms::cumulative()`](https://paulbuerkner.com/brms/reference/brmsfamily.html)
     family,
-    [`mclogit::mblogit()`](https://rdrr.io/pkg/mclogit/man/mblogit.html)
+    [`mclogit::mblogit()`](https://melff.github.io/mclogit/reference/mblogit.html)
     (the returned object inherits from class `mmblogit`) for the
     [`brms::categorical()`](https://paulbuerkner.com/brms/reference/brmsfamily.html)
     family.
@@ -220,6 +226,20 @@ memory. These [`gc()`](https://rdrr.io/r/base/gc.html) calls are not
 always necessary to reduce the peak memory usage, but they add runtime
 (hence the default of `FALSE` for that global option).
 
+During a call of
+[`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md),
+[`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
+or [`project()`](https://mc-stan.org/projpred/dev/reference/project.md),
+projpred caches the submodel formulas and model matrices per set of
+predictor terms (for submodels without multilevel or additive terms).
+Global option `projpred.proj_cache_mb` (default `512`) limits the size
+of this cache, in units of 2^20 bytes as estimated by
+[`utils::object.size()`](https://rdrr.io/r/utils/object.size.html). The
+cache holds at most about twice this limit. The limit applies to each R
+process, so forked parallel workers can each have a cache of this size.
+Setting global option `projpred.proj_cache` to `FALSE` switches the
+cache off. The cache changes only the runtime, not the results.
+
 ## Other notes
 
 Global option `projpred.digits` controls arguments `digits` of
@@ -310,6 +330,8 @@ Useful links:
 **Maintainer**: Osvaldo Martin <aloctavodia@gmail.com>
 
 Authors:
+
+- Osvaldo Martin <aloctavodia@gmail.com>
 
 - Juho Piironen <juho.t.piironen@gmail.com>
 
