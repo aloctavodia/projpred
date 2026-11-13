@@ -10,7 +10,15 @@
   [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
   with `validate_search = TRUE` for a Gaussian model with 40
   observations and 15 predictor terms is about 8 times faster. (GitHub:
-  [\#579](https://github.com/stan-dev/projpred/issues/579))
+  [\#579](https://github.com/stan-dev/projpred/issues/579),
+  [\#607](https://github.com/stan-dev/projpred/issues/607),
+  [\#610](https://github.com/stan-dev/projpred/issues/610))
+- Faster repeated forward searches, as in
+  [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
+  with `validate_search = TRUE`: the results of the term-label and
+  formula code are cached within the R session (R \>= 4.2.0). For
+  example, LOO CV with validated search is about 12-18 % faster.
+  (GitHub: [\#599](https://github.com/stan-dev/projpred/issues/599))
 - Less formula and model-matrix work in the forward search and in the
   projections: the candidate submodels are selected from precomputed
   term labels, and the predictions for the training data use the stored
@@ -42,6 +50,24 @@
   with 10 000 observations and 4 000 projected draws is about 7 times
   faster. (GitHub:
   [\#575](https://github.com/stan-dev/projpred/issues/575))
+- Faster and more accurate multilevel submodel fits for the
+  [`brms::categorical()`](https://paulbuerkner.com/brms/reference/brmsfamily.html)
+  family: projpred now uses its own implementation of the PQL algorithm
+  of
+  [`mclogit::mblogit()`](https://melff.github.io/mclogit/reference/mblogit.html),
+  with a corrected gradient. For example,
+  [`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md) for
+  a model with 300 observations is about 26 times faster. (GitHub:
+  [\#597](https://github.com/stan-dev/projpred/issues/597))
+- Faster [`ordinal::clmm()`](https://rdrr.io/pkg/ordinal/man/clmm.html)
+  submodel fits with a single group-level intercept: projpred now uses
+  `ucminf()` with forward differences, and refits with
+  [`nlminb()`](https://rdrr.io/r/stats/nlminb.html) if needed. The
+  `cloglog` and `loglog` links keep the default optimizer. For example,
+  [`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md) for
+  a cumulative model with 300 observations is about 1.5 to 2 times
+  faster. (GitHub:
+  [\#596](https://github.com/stan-dev/projpred/issues/596))
 - Faster [`lme4::glmer()`](https://rdrr.io/pkg/lme4/man/glmer.html)
   submodel fits: projpred now uses BOBYQA in both optimization stages,
   which changes the fits only within the optimizer tolerance. For
@@ -52,24 +78,22 @@
   [\#592](https://github.com/stan-dev/projpred/issues/592))
 - Faster projections onto ordinal submodels without group-level terms
   ([`brms::cumulative()`](https://paulbuerkner.com/brms/reference/brmsfamily.html),
-  [`rstanarm::stan_polr()`](https://mc-stan.org/rstanarm/reference/stan_polr.html)):
-  one C++ call fits all projected draws, with results equal to those of
-  [`MASS::polr()`](https://rdrr.io/pkg/MASS/man/polr.html) up to its
-  convergence tolerance. For example,
+  [`rstanarm::stan_polr()`](https://mc-stan.org/rstanarm/reference/stan_polr.html)).
+  For example,
   [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
-  with `validate_search = TRUE` is about 23 times faster for a model
+  with `validate_search = TRUE` is about 45 times faster for a model
   with 6 categories. (GitHub:
-  [\#583](https://github.com/stan-dev/projpred/issues/583))
+  [\#583](https://github.com/stan-dev/projpred/issues/583),
+  [\#608](https://github.com/stan-dev/projpred/issues/608))
 - Faster projections onto categorical submodels without group-level
   terms
-  ([`brms::categorical()`](https://paulbuerkner.com/brms/reference/brmsfamily.html)):
-  one C++ call fits all projected draws, with results equal to those of
-  [`nnet::multinom()`](https://rdrr.io/pkg/nnet/man/multinom.html) up to
-  its convergence tolerance. For example,
+  ([`brms::categorical()`](https://paulbuerkner.com/brms/reference/brmsfamily.html)).
+  For example,
   [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
-  with `validate_search = TRUE` is about 8 times faster for a model with
-  4 categories. (GitHub:
-  [\#583](https://github.com/stan-dev/projpred/issues/583))
+  with `validate_search = TRUE` is about 11 times faster for a model
+  with 4 categories. (GitHub:
+  [\#583](https://github.com/stan-dev/projpred/issues/583),
+  [\#609](https://github.com/stan-dev/projpred/issues/609))
 - Faster projections onto binomial and Poisson GLM submodels (and
   Gaussian GLM submodels with a non-identity link): the IRLS fits
   compute their pseudo-observations in C++, and one C++ call fits all
@@ -115,8 +139,50 @@
   [`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md) for
   an additive model is about 1.5 times faster. (GitHub:
   [\#584](https://github.com/stan-dev/projpred/issues/584))
+- Faster reweighting of the clusters of the reference model draws in
+  [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
+  with `validate_search = TRUE`. For example,
+  [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
+  with `validate_search = TRUE` and 400 clusters is about 2 times faster
+  for a Gaussian model with 382 observations. (GitHub:
+  [\#601](https://github.com/stan-dev/projpred/issues/601))
+- New argument `loo_perturb_alpha` of
+  [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md).
+  With LOO, `validate_search = TRUE` and `refit_prj = TRUE`, the
+  fold-wise searches use observation weight perturbation, so the LOO
+  estimates jump less between submodel sizes. This changes the default
+  results. (GitHub:
+  [\#603](https://github.com/stan-dev/projpred/issues/603),
+  [\#620](https://github.com/stan-dev/projpred/issues/620))
 
 ### Minor changes
+
+- [`get_refmodel.stanreg()`](https://mc-stan.org/projpred/dev/reference/refmodel-init-get.md)
+  has new arguments `cvfun` and `cvrefbuilder` for K-fold CV. For
+  example, a custom `cvrefbuilder` lets custom latent-projection
+  functions use the draws of the fold-wise refits. (GitHub:
+  [\#604](https://github.com/stan-dev/projpred/issues/604))
+- New function
+  [`custom_stat()`](https://mc-stan.org/projpred/dev/reference/custom_stat.md)
+  defines a user-defined performance statistic for argument `stats` of
+  [`summary.vsel()`](https://mc-stan.org/projpred/dev/reference/summary.vsel.md),
+  [`plot.vsel()`](https://mc-stan.org/projpred/dev/reference/plot.vsel.md)
+  and
+  [`performances()`](https://mc-stan.org/projpred/dev/reference/performances.md),
+  and argument `stat` of
+  [`suggest_size()`](https://mc-stan.org/projpred/dev/reference/suggest_size.md).
+  (GitHub: [\#566](https://github.com/stan-dev/projpred/issues/566),
+  [\#590](https://github.com/stan-dev/projpred/issues/590))
+- Faster
+  [`cl_agg()`](https://mc-stan.org/projpred/dev/reference/cl_agg.md) and
+  conversion of arrays to augmented-rows matrices. For example, LOO CV
+  with validated search for the latent projection with 4000 projected
+  draws is about 3-4 times faster. (GitHub:
+  [\#600](https://github.com/stan-dev/projpred/issues/600))
+- The parallel
+  [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
+  with `validate_search = TRUE` sends less data to the workers. (GitHub:
+  [\#611](https://github.com/stan-dev/projpred/issues/611))
 
 ### Bug fixes and maintenance
 
@@ -138,6 +204,12 @@
   [\#573](https://github.com/stan-dev/projpred/issues/573))
 - Tests: Adapt to version 2.1-0 of package lme4. (GitHub:
   [\#577](https://github.com/stan-dev/projpred/issues/577))
+- Fixed bug in
+  [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
+  with `cv_method = "kfold"` for **rstanarm** reference models with a
+  dispersion parameter (e.g., the
+  [`gaussian()`](https://rdrr.io/r/stats/family.html) family). (GitHub:
+  [\#587](https://github.com/stan-dev/projpred/issues/587))
 - Docs: Explain how custom latent-projection functions can use fold-wise
   draws in K-fold CV
   ([`?extend_family`](https://mc-stan.org/projpred/dev/reference/extend_family.md),
@@ -164,7 +236,8 @@
   [`cv_varsel()`](https://mc-stan.org/projpred/dev/reference/cv_varsel.md)
   if two predictor terms have the same text before or after a `+` inside
   a call, such as `log(p + 1)` and `log(q + 1)`. (GitHub:
-  [\#595](https://github.com/stan-dev/projpred/issues/595))
+  [\#595](https://github.com/stan-dev/projpred/issues/595),
+  [\#606](https://github.com/stan-dev/projpred/issues/606))
 - Filter the warning “non-integer response values in a poisson model” of
   lme4 (\>= 2.1-1), which every projection onto a Poisson submodel with
   group-level terms would give. (GitHub:
@@ -182,6 +255,41 @@
   of the R session unchanged after the tests, also when a test fails,
   and remove the manual cleanup of the test workspace. (GitHub:
   [\#586](https://github.com/stan-dev/projpred/issues/586))
+- Fixed [`ordinal::clmm()`](https://rdrr.io/pkg/ordinal/man/clmm.html)
+  submodel fits of cumulative models (e.g.,
+  [`brms::cumulative()`](https://paulbuerkner.com/brms/reference/brmsfamily.html))
+  with the `cloglog` or `loglog` link and a single group-level
+  intercept. These fits now use the slower default optimizer of
+  `clmm()`. (GitHub:
+  [\#613](https://github.com/stan-dev/projpred/issues/613))
+- Fixed the error “‘gam.fit’ is not an exported object from
+  ‘namespace:mgcv’” in projections onto additive submodels with mgcv
+  1.9-5. (GitHub:
+  [\#598](https://github.com/stan-dev/projpred/issues/598),
+  [\#602](https://github.com/stan-dev/projpred/issues/602))
+- Fixed the log-likelihood of binomial (logit) and Poisson (log)
+  reference model draws with a large linear predictor, where the inverse
+  link clamped the mean. (GitHub:
+  [\#614](https://github.com/stan-dev/projpred/issues/614))
+- Fixed the log-likelihood of reference model draws with small response
+  category probabilities in the augmented-data projection (cumulative,
+  categorical and binomial families). (GitHub:
+  [\#618](https://github.com/stan-dev/projpred/issues/618))
+- With lme4 versions before 2.1-1, binomial submodels with multilevel
+  terms (and no additive terms) now use `nAGQ = 0` in
+  [`lme4::glmer()`](https://rdrr.io/pkg/lme4/man/glmer.html) for
+  non-integer responses or weights, unless `nAGQ` is set via `...`.
+  Their coefficients were fitted to rounded data before. (GitHub:
+  [\#616](https://github.com/stan-dev/projpred/issues/616))
+- Removed line breaks from the names of search terms above about 500
+  characters in
+  [`ranking()`](https://mc-stan.org/projpred/dev/reference/ranking.md),
+  [`summary()`](https://rdrr.io/r/base/summary.html) and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html). (GitHub:
+  [\#607](https://github.com/stan-dev/projpred/issues/607))
+- Fixed the term names of the L1 search if one model-matrix column name
+  starts with another one. (GitHub:
+  [\#615](https://github.com/stan-dev/projpred/issues/615))
 
 ## projpred 2.11.0
 
