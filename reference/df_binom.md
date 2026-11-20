@@ -22,4 +22,4 @@ A simulated classification dataset containing 100 observations.
 
 ## Source
 
-<https://web.stanford.edu/~hastie/glmnet/glmnetData/BNExample.RData>
+<https://hastie.su.domains/glmnet/glmnetData/BNExample.RData>
