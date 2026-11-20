@@ -13,8 +13,8 @@ explained in section "Note" below) and by running the evaluation part on
 the corresponding test set of each CV fold. A special method is
 `cv_varsel.vsel()` because it re-uses the search results from an earlier
 `cv_varsel()` (or
-[`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md)) run,
-as illustrated in the main vignette.
+[`varsel()`](https://mc-stan.org/projpred/dev/reference/varsel.md)) run
+(see section "Speed" of the main vignette).
 
 ## Usage
 
@@ -60,6 +60,7 @@ cv_varsel(
   loo_perturb_alpha = 10,
   seed = NA,
   search_terms = NULL,
+  search_screen = NULL,
   search_out = NULL,
   parallel = getOption("projpred.parallel_cv", FALSE),
   ...
@@ -293,7 +294,7 @@ cv_varsel(
   observations), for sampling the folds in \\K\\-fold CV, for the
   weights of the weight perturbation (see section "Note"), and for
   drawing new group-level effects when predicting from a multilevel
-  submodel (however, not yet in case of a GAMM).
+  submodel.
 
 - search_terms:
 
@@ -304,7 +305,53 @@ cv_varsel(
   [`union()`](https://rdrr.io/r/base/sets.html), so there's no
   difference between including it explicitly or omitting it. The default
   `search_terms` considers all the terms in the reference model's
-  formula.
+  formula and, for each smooth term, the linear terms of its variables.
+  A smooth term can enter the search only after the linear terms of its
+  variables that are search terms without a smooth term; the smooth term
+  then adds the nonlinear part. To search a smooth term without its
+  linear terms, leave these linear terms out of `search_terms`.
+
+- search_screen:
+
+  Only relevant for forward search. `NULL` (default) for the plain
+  forward search, or a single positive integer m for a screened forward
+  search: in each step, a cheap criterion ranks the candidates, and only
+  the m best candidates get an exact projection. This reduces the number
+  of projections from about p per step to at most m per step. The
+  selected terms and their order can differ from those of the plain
+  forward search. All screens need the default divergence minimizer. The
+  criterion depends on the model:
+
+  - Traditional projection with
+    [`binomial()`](https://rdrr.io/r/stats/family.html) (logit link) or
+    [`poisson()`](https://rdrr.io/r/stats/family.html) (log link)
+    submodels without multilevel terms, additive terms and interactions
+    with a factor: the score statistic of each candidate at the current
+    submodel, which approximates the reduction of the KL divergence. The
+    model matrix of the search terms must be possible to build (for
+    example, no missing values and no zero-variance columns). With
+    offsets, the score statistic approximates the reduction of the
+    objective that the submodels are fitted to, which has no offsets;
+    the exact projections still choose the term. We recommend m = 3.
+
+  - Augmented-data projection with the
+    [`brms::cumulative()`](https://paulbuerkner.com/brms/reference/brmsfamily.html)
+    family (logit or probit link), without offsets, multilevel terms and
+    additive terms, and with one model-matrix column per search term
+    (for example, no factors with more than two levels): the reduction
+    of a weighted residual sum of squares of the latent predictor. We
+    recommend m = 10.
+
+  - Latent projection with multilevel terms, without offsets and
+    additive terms: the residual sum of squares of one
+    [`lme4::lmer()`](https://rdrr.io/pkg/lme4/man/lmer.html) fit per
+    candidate to the mean latent predictor of the projected draws. We
+    recommend m = 3.
+
+  In the other cases, `search_screen` is ignored and the plain forward
+  search runs. For Gaussian submodels with the identity link,
+  `search_screen` is ignored if projpred uses its cross-product forward
+  search for them.
 
 - search_out:
 
@@ -385,6 +432,27 @@ only candidate. As another example, to exclude `x1` from the search,
 specify `search_terms = c("x2", "x3", "x2 + x3")` (or, in a simpler way
 that leads to the same results, `search_terms = c("x2", "x3")`).
 
+The elements of `search_terms` are not exclusive alternatives. A
+candidate model consists of the `chosen` predictor terms and the terms
+of one element, so terms from different elements can be in the same
+submodel. For smooth terms, additional rules apply (see argument
+`search_terms`). For example, consider a reference model with formula
+`y ~ x1 + x2 + x3 + x4` and
+`search_terms = c("x1 + x2", "x1 + x3", "x1 + x2 + x4")`. After `y ~ 1`,
+the candidates are `y ~ x1 + x2` and `y ~ x1 + x3`. If the search
+selects `x1 + x3`, the only candidate in the next step is
+`y ~ x1 + x3 + x2`. This candidate comes from element `"x1 + x2"`,
+because `x1` is already chosen. The only candidate in the step after
+that is `y ~ x1 + x3 + x2 + x4` (from element `"x1 + x2 + x4"`). The
+predictor ranking is then `x1 + x3`, `x2`, `x4`. If the search selects
+`x1 + x2` instead, the candidates in the next step are
+`y ~ x1 + x2 + x3` and `y ~ x1 + x2 + x4`, so `x3` is still possible.
+Thus, a search that selects either `x1 + x2 + x4` or `x1 + x3` (but not
+terms of both) is not possible with one `search_terms` vector. For this,
+run one search for each set of terms, for example with
+`search_terms = c("x1 + x2", "x1 + x2 + x4")` and with
+`search_terms = "x1 + x3"`.
+
 ## Note
 
 If `validate_search` is `FALSE`, the search is not included in the CV so
@@ -464,15 +532,21 @@ parallel. Costly parts are the fold-wise searches and performance
 evaluations in case of `validate_search = TRUE`. (Note that in case of
 \\K\\-fold CV, the \\K\\ reference model refits are not affected by
 argument `parallel`; only projpred's CV is affected.) The
-parallelization is powered by the foreach package. Thus, any parallel
-(or sequential) backend compatible with foreach can be used, e.g., the
-backends from packages doParallel, doMPI, or doFuture. For GLMs, this CV
-parallelization should work reliably, but for other models (such as
-GLMMs), it may lead to excessive memory usage which in turn may crash
-the R session (on Unix systems, setting an appropriate memory limit via
-[`unix::rlimit_as()`](https://jeroen.r-universe.dev/unix/reference/rlimit.html)
-may avoid crashing the whole machine). However, the problem of excessive
-memory usage is less pronounced for the CV parallelization than for the
+parallelization uses the workers of the current plan of the future
+package (set up with, e.g.,
+`future::plan(future.mirai::mirai_multisession, workers = 4)` or
+`future::plan(future::multisession, workers = 4)`), see section
+"Parallelization" in
+[projpred-package](https://mc-stan.org/projpred/dev/reference/projpred-package.md).
+Without such workers, the CV runs sequentially, with a warning. Each CV
+fold has its own random number stream (also with `parallel = FALSE`), so
+for a given seed, the results depend neither on argument `parallel` nor
+on the number of workers. For GLMs, this CV parallelization should work
+reliably, but for other models (such as GLMMs), it may lead to excessive
+memory usage which in turn may crash the R session (on Unix systems,
+setting an appropriate memory limit via `unix::rlimit_as()` may avoid
+crashing the whole machine). However, the problem of excessive memory
+usage is less pronounced for the CV parallelization than for the
 projection parallelization described in
 [projpred-package](https://mc-stan.org/projpred/dev/reference/projpred-package.md).
 In that regard, the CV parallelization is recommended over the
