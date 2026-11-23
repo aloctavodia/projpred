@@ -291,7 +291,7 @@ print(time_lat)
 ```
 
        user  system elapsed 
-     13.370   0.015   3.652 
+     18.933   0.015   5.083 
 
 The warnings about high Pareto \\\hat{k}\\ values concern only a few of
 the 100 observations. With the short MCMC run of this vignette (1000
@@ -414,7 +414,7 @@ rbind(latent = time_lat, traditional = time_trad)[, "elapsed"]
 ```
 
          latent traditional 
-          3.652      54.333 
+          5.083      65.375 
 
 ``` r
 
@@ -771,6 +771,9 @@ cvvs_weib <- cv_varsel(
 
     Cutting off the search at size 19. Use argument `nterms_max` to customize this.
 
+    Warning: In the recalculation of the latent response values, some (1 / 500) expectation-specific Pareto k-values are > 0.7.
+    In general, we recommend K-fold CV in this case.
+
 As in the Poisson example, warnings about high Pareto \\\hat{k}\\ values
 can come from the short MCMC run of this vignette. In a real analysis,
 we would run more MCMC iterations, check the Pareto \\\hat{k}\\ values
@@ -813,7 +816,7 @@ decision here):
 suggest_size(cvvs_weib, stat = "mlpd")
 ```
 
-    [1] 9
+    [1] 8
 
 Project onto the submodel of this size and perform a
 “posterior-projection predictive check” (PPPC):
@@ -972,10 +975,10 @@ cvvs_lnorm <- cv_varsel(
 
     Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
 
-    Warning: Some (4 / 500) Pareto k's for the reference model's PSIS-LOO weights
+    Warning: Some (5 / 500) Pareto k's for the reference model's PSIS-LOO weights
     are > 0.7.
 
-    Warning: In the recalculation of the latent response values, some (8 / 500) expectation-specific Pareto k-values are > 0.7.
+    Warning: In the recalculation of the latent response values, some (9 / 500) expectation-specific Pareto k-values are > 0.7.
     In general, we recommend K-fold CV in this case.
 
 As in the Poisson example, warnings about high Pareto \\\hat{k}\\ values
